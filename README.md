@@ -26,7 +26,7 @@ The project is divided into six core modules following the **Router → Serializ
 - **Documentation:** Swagger/OpenAPI
 
 ## 📖 Getting Started
-1. Clone the repo: `git clone https://github.com/Smrithy2002/Life_track.git`
+1. Clone the repo: `git clone https://github.com/Smrithi2002/Life_track.git`
 2. Install dependencies: `pip install -r requirements.txt`
 3. Run migrations: `python manage.py migrate`
 4. Start dev server: `python manage.py runserver`
