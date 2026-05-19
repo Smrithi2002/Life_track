@@ -12,7 +12,6 @@ from .serializers import (
     PaymentSerializer, PaymentCreateSerializer,
 )
 from .services import BillingService
-
 logger = logging.getLogger('billing')
 
 
