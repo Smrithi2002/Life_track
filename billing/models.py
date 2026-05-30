@@ -34,6 +34,11 @@ class PaymentMethod(models.TextChoices):
     INSURANCE   = 'INSURANCE',   'Insurance'
 
 
+class PaymentChannel(models.TextChoices):
+    COUNTER = 'COUNTER', 'Counter'
+    ONLINE  = 'ONLINE',  'Online'
+
+
 class InvoiceItemType(models.TextChoices):
     CONSULTATION = 'CONSULTATION', 'Consultation Fee'
     MEDICINE     = 'MEDICINE',     'Medicine'
@@ -151,8 +156,14 @@ class Payment(models.Model):
     id              = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     invoice         = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments')
     amount          = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_channel = models.CharField(
+        max_length=15,
+        choices=PaymentChannel.choices,
+        default=PaymentChannel.COUNTER,
+    )
     payment_method  = models.CharField(max_length=15, choices=PaymentMethod.choices)
     gateway_txn_id  = models.CharField(max_length=255, blank=True, help_text='Payment gateway transaction ID.')
+    razorpay_order_id = models.CharField(max_length=255, blank=True, help_text='Razorpay Order ID.')
     status          = models.CharField(max_length=15, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
     receipt_url     = models.URLField(blank=True)
     paid_at         = models.DateTimeField(null=True, blank=True)

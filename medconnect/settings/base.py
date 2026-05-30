@@ -104,7 +104,7 @@ WSGI_APPLICATION = 'medconnect.wsgi.application'
 #         "USER": "postgres",
 #         "PASSWORD": "Admin@1234",
 #         "HOST": "localhost",
-#         "PORT": "5432",
+#         "PORT": "5432", 
 #     }
 # }
 
@@ -386,3 +386,11 @@ LOGGING = {
         },
     },
 }
+
+# ─────────────────────────────────────────────────────────────────────
+#  RAZORPAY INTEGRATION SETTINGS
+# ─────────────────────────────────────────────────────────────────────
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
+RAZORPAY_MOCK = os.environ.get('RAZORPAY_MOCK', 'True').lower() in ('true', '1', 'yes')
+

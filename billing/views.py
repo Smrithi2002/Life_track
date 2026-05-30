@@ -3,6 +3,7 @@ import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from django.conf import settings
 
 from accounts.permissions import IsAdmin, IsReceptionOrAdmin, IsAdminOrStaff
 from accounts.utils import APIResponse
@@ -72,11 +73,90 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             amount=ser.validated_data['amount'],
             payment_method=ser.validated_data['payment_method'],
             gateway_txn_id=ser.validated_data.get('gateway_txn_id', ''),
+            payment_channel='COUNTER',
         )
         return APIResponse.success(
             data=PaymentSerializer(payment).data,
             message='Payment recorded.',
         )
+
+    @action(detail=True, methods=['post'], url_path='create-payment-order',
+            permission_classes=[IsAuthenticated])
+    def create_payment_order(self, request, pk=None):
+        invoice = self.get_object()
+        if invoice.payment_status == PaymentStatus.COMPLETED:
+            return APIResponse.error(message="Invoice is already fully paid.", status_code=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            order = BillingService.create_razorpay_order(invoice)
+            
+            # Create a pending Payment transaction record locally
+            Payment.objects.create(
+                invoice=invoice,
+                amount=invoice.total_amount,
+                payment_channel='ONLINE',
+                payment_method='UPI',  # Default placeholder
+                razorpay_order_id=order['id'],
+                status=PaymentStatus.PENDING
+            )
+            
+            return APIResponse.success(
+                data={
+                    "razorpay_order_id": order['id'],
+                    "amount": order['amount'],
+                    "currency": order['currency'],
+                    "receipt": order['receipt'],
+                    "key_id": settings.RAZORPAY_KEY_ID  # Pass key_id so the app checkout knows which key to open
+                },
+                message="Payment order created successfully."
+            )
+        except Exception as e:
+            return APIResponse.error(message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], url_path='verify-payment',
+            permission_classes=[IsAuthenticated])
+    def verify_payment(self, request, pk=None):
+        invoice = self.get_object()
+        razorpay_payment_id = request.data.get('razorpay_payment_id')
+        razorpay_order_id = request.data.get('razorpay_order_id')
+        razorpay_signature = request.data.get('razorpay_signature')
+
+        if not all([razorpay_payment_id, razorpay_order_id, razorpay_signature]):
+            return APIResponse.error(
+                message="Missing required verification fields (razorpay_payment_id, razorpay_order_id, razorpay_signature).",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        success = BillingService.verify_razorpay_payment(
+            invoice=invoice,
+            razorpay_payment_id=razorpay_payment_id,
+            razorpay_order_id=razorpay_order_id,
+            razorpay_signature=razorpay_signature
+        )
+
+        if success:
+            return APIResponse.success(
+                data=InvoiceSerializer(invoice, context={'request': request}).data,
+                message="Payment verified successfully."
+            )
+        else:
+            return APIResponse.error(
+                message="Signature verification failed. Invalid transaction.",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=['post'], url_path='razorpay-webhook',
+            permission_classes=[])  # Public webhook callback from Razorpay
+    def razorpay_webhook(self, request):
+        payload = request.data
+        signature = request.headers.get('X-Razorpay-Signature', '')
+
+        success = BillingService.handle_razorpay_webhook(payload, signature)
+        if success:
+            return APIResponse.success(message="Webhook processed successfully.")
+        else:
+            # Always return 200 to Razorpay to prevent webhook retries, even if signature mismatches/is not processed
+            return APIResponse.success(message="Webhook processed but signature mismatch/no action required.")
 
     @action(detail=False, methods=['get'], url_path='my-invoices')
     def my_invoices(self, request):

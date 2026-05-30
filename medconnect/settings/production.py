@@ -3,5 +3,6 @@ from .base import *
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    "your-domain.com",
+    "15.206.172.47",
+    "medconnectapi.duckdns.org",
 ]
