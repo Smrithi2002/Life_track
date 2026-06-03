@@ -88,6 +88,15 @@ class Medicine(models.Model):
     is_active       = models.BooleanField(default=True)
     created_at      = models.DateTimeField(auto_now_add=True)
     updated_at      = models.DateTimeField(auto_now=True)
+    # ── Organization (Multi-Tenant Ready) ────────────────────────────
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='medicines',
+        help_text='Organization-specific medicine catalog entry.',
+    )
 
     class Meta:
         db_table = 'medicines'
@@ -159,6 +168,15 @@ class Prescription(models.Model):
     notes         = models.TextField(blank=True, help_text='Doctor notes / instructions.')
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)
+    # ── Organization (Multi-Tenant Ready) ────────────────────────────
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='prescriptions',
+        help_text='Organization where this prescription was issued.',
+    )
 
     class Meta:
         db_table = 'prescriptions'

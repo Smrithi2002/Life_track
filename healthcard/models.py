@@ -40,6 +40,7 @@ class HealthCard(models.Model):
     qr_code_image = models.ImageField(upload_to='healthcards/qr/', blank=True, null=True)
     status        = models.CharField(max_length=10, choices=CardStatus.choices, default=CardStatus.ACTIVE)
     is_active     = models.BooleanField(default=True, db_index=True)
+    is_elite      = models.BooleanField(default=False, help_text='True if the patient purchased the Elite card.')
 
     issued_by     = models.ForeignKey(
         settings.AUTH_USER_MODEL,

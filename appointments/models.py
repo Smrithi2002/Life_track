@@ -79,6 +79,15 @@ class Department(models.Model):
     is_active   = models.BooleanField(default=True)
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
+    # ── Organization (Multi-Tenant Ready) ────────────────────────────
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='departments',
+        help_text='Organization this department belongs to.',
+    )
 
     class Meta:
         db_table = 'departments'
@@ -132,6 +141,15 @@ class DoctorProfile(models.Model):
     )
     created_at      = models.DateTimeField(auto_now_add=True)
     updated_at      = models.DateTimeField(auto_now=True)
+    # ── Organization (Multi-Tenant Ready) ────────────────────────────
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='doctor_profiles',
+        help_text='Organization this doctor works for.',
+    )
 
     class Meta:
         db_table = 'doctor_profiles'
@@ -225,6 +243,16 @@ class Appointment(models.Model):
         DoctorProfile,
         on_delete=models.CASCADE,
         related_name='doctor_appointments',
+    )
+
+    # ── Organization (Multi-Tenant Ready) ────────────────────────────
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='appointments',
+        help_text='Organization where this appointment is booked.',
     )
 
     # Scheduling

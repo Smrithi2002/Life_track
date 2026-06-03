@@ -55,6 +55,9 @@ urlpatterns = [
     # Billing (invoices, payments)
     path('api/v1/', include('billing.urls')),
 
+    # Organizations (settings, feature toggles) — NEW
+    path('api/v1/', include('organizations.urls')),
+
      # ... existing URLs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

@@ -56,6 +56,12 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
 
 class DoctorProfileCreateSerializer(serializers.ModelSerializer):
     """Used by Admin to create/update doctor profiles."""
+    department = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = DoctorProfile
         fields = [

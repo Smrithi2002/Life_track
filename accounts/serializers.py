@@ -418,27 +418,26 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
     After registration:
       Patient verifies phone via OTP → gets JWT tokens
     """
-    password = serializers.CharField(
+    
+    is_elite_card = serializers.BooleanField(
         write_only=True,
-        min_length=8,
-        help_text='Set your login password (min 8 characters).',
-    )
-    confirm_password = serializers.CharField(
-        write_only=True,
-        help_text='Confirm your password.',
+        default=False,
+        help_text='Set to True if purchasing Elite card, False for Base card.',
     )
 
     class Meta:
         model = User
         fields = [
-            'phone', 'full_name', 'email',
-            'password', 'confirm_password',
+            'phone', 'full_name', 'email', 'avatar', 'id_proof',
+            'is_elite_card',
             'date_of_birth', 'gender', 'blood_group',
         ]
         extra_kwargs = {
             'phone': {'required': True},
             'full_name': {'required': True},
             'email': {'required': False},
+            'avatar': {'required': False},
+            'id_proof': {'required': True},
             'date_of_birth': {'required': False},
             'gender': {'required': False},
             'blood_group': {'required': False},
@@ -458,19 +457,12 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate(self, attrs):
-        if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({
-                'confirm_password': 'Passwords do not match.',
-            })
-        validate_password(attrs['password'])
-        return attrs
-
     def create(self, validated_data):
-        validated_data.pop('confirm_password')
-        password = validated_data.pop('password')
+        import secrets
+        password = secrets.token_urlsafe(16)
+        is_elite = validated_data.pop('is_elite_card', False)
 
-        return User.objects.create_user(
+        user = User.objects.create_user(
             phone=validated_data.pop('phone'),
             full_name=validated_data.pop('full_name'),
             email=validated_data.pop('email', None),
@@ -478,6 +470,17 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
             password=password,
             **validated_data,
         )
+        
+        # Auto-issue a Health Card based on registration selection
+        from healthcard.models import HealthCard
+        card = HealthCard.objects.create(
+            patient=user,
+            is_elite=is_elite,
+        )
+        # Generate the QR code for the newly issued card
+        card.generate_qr_code()
+        
+        return user
 
 
 # ═════════════════════════════════════════════════════════════════════

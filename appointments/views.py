@@ -17,6 +17,7 @@ from accounts.permissions import (
     IsReceptionOrAdmin, IsDoctorOrAdmin, IsPatient,
 )
 from accounts.utils import APIResponse
+from organizations.features import DepartmentsFeatureRequired, FeatureToggle
 
 from .models import (
     Department, DoctorProfile, DoctorSchedule,
@@ -56,9 +57,10 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [IsAuthenticated()]
-        return [IsAuthenticated(), IsAdmin()]
+        perms = [IsAuthenticated(), DepartmentsFeatureRequired()]
+        if self.action not in ['list', 'retrieve']:
+            perms.append(IsAdmin())
+        return perms
 
     def list(self, request, *args, **kwargs):
         qs = self.filter_queryset(self.get_queryset())
@@ -111,9 +113,13 @@ class DoctorProfileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        dept = self.request.query_params.get('department')
-        if dept:
-            qs = qs.filter(department_id=dept)
+        
+        organization = getattr(self.request, 'organization', None)
+        if FeatureToggle.is_enabled(organization, 'enable_departments'):
+            dept = self.request.query_params.get('department')
+            if dept:
+                qs = qs.filter(department_id=dept)
+                
         available = self.request.query_params.get('available')
         if available is not None:
             qs = qs.filter(is_available=available.lower() in ('true', '1'))

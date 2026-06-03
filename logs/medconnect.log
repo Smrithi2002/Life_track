@@ -103,3 +103,38 @@ DETAIL:  Key (card_number)=(MC-PAT-2026-00001) already exists.
 [2026-04-28 21:00:14,566] INFO accounts OTP generated for +912222333344 (ID: 4804cb88-9f87-4540-adda-8e4e24fe7505, expires: 2026-04-28 15:35:14.564237+00:00)
 [2026-04-28 21:00:14,567] INFO accounts [DEV SMS] OTP for +912222333344: 328223 (DO NOT USE IN PRODUCTION)
 [2026-04-28 21:02:07,832] INFO accounts OTP verified successfully for +912222333344
+[2026-06-01 12:34:17,706] INFO accounts OTP generated for +919999988888 (ID: 1dd31cab-75a9-42d2-bbb4-cc881e583fa1, expires: 2026-06-01 07:09:17.704995+00:00)
+[2026-06-01 12:34:17,706] INFO accounts [DEV SMS] OTP for +919999988888: 805221 (DO NOT USE IN PRODUCTION)
+[2026-06-01 12:48:12,085] INFO accounts OTP generated for +919999988888 (ID: 6d72992a-c70a-4b6f-ac34-5162e826cabf, expires: 2026-06-01 07:23:12.084425+00:00)
+[2026-06-01 12:48:12,086] INFO accounts [DEV SMS] OTP for +919999988888: 508848 (DO NOT USE IN PRODUCTION)
+[2026-06-01 12:49:22,886] INFO accounts OTP verified successfully for +919999988888
+[2026-06-03 11:38:04,255] ERROR accounts Unhandled exception in <accounts.views.PatientRegistrationView object at 0x0000024F4B0DE0D0>
+Traceback (most recent call last):
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\SMRITHI\LIFE_TRACK_PROJECT\backend\accounts\views.py", line 272, in post
+    serializer.is_valid(raise_exception=True)
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\serializers.py", line 456, in run_validation
+    value = self.to_internal_value(data)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\serializers.py", line 509, in to_internal_value
+    for field in fields:
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\serializers.py", line 392, in _writable_fields
+    for field in self.fields.values():
+                 ^^^^^^^^^^^
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\django\utils\functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\serializers.py", line 386, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\serializers.py", line 1101, in get_fields
+    field_names = self.get_field_names(declared_fields, info)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\serializers.py", line 1204, in get_field_names
+    assert field_name in fields, (
+AssertionError: The field 'is_elite_card' was declared on serializer PatientRegistrationSerializer, but has not been included in the 'fields' option.

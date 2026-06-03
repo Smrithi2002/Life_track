@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # MedConnect apps
+    'organizations.apps.OrganizationsConfig',   # ← NEW: org settings & feature toggles
     'accounts.apps.AccountsConfig',
     'healthcard.apps.HealthcardConfig',
     'appointments.apps.AppointmentsConfig',
@@ -70,6 +71,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # ← NEW: attaches request.organization to every request
+    'organizations.middleware.OrganizationMiddleware',
 ]
 
 ROOT_URLCONF = 'medconnect.urls'
@@ -320,6 +323,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',       # Flutter web alt
     'http://127.0.0.1:3000',
     'http://127.0.0.1:8080',
+    
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -394,3 +398,22 @@ RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
 RAZORPAY_MOCK = os.environ.get('RAZORPAY_MOCK', 'True').lower() in ('true', '1', 'yes')
 
+
+# ─────────────────────────────────────────────────────────────────────
+#  ORGANIZATION & FEATURE TOGGLE DEFAULTS  (Clinic-First Architecture)
+# ─────────────────────────────────────────────────────────────────────
+# These defaults are used as fallback when no Organization record exists.
+# Once the Organization table is seeded (create_default_organization),
+# the DB values take precedence via OrganizationMiddleware.
+
+ORGANIZATION_DEFAULTS = {
+    'setup_type':            'CLINIC',   # CLINIC | HOSPITAL
+    'enable_departments':    False,      # Clinic = no departments
+    'enable_lab':            False,      # Lab disabled in clinic mode
+    'enable_pharmacy':       True,       # Pharmacy always on
+    'enable_ipd':            False,      # IPD disabled in clinic mode
+    'enable_analytics':      False,      # Analytics disabled in clinic mode
+    'enable_multi_doctor':   True,       # Multiple doctors allowed
+    'enable_online_booking': True,       # Online booking enabled
+    'enable_telemedicine':   False,      # Telemedicine disabled
+}

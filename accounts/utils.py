@@ -112,8 +112,13 @@ def custom_exception_handler(exc, context):
         )
 
     elif isinstance(exc, AuthenticationFailed):
+        # Extract the actual error message (e.g., from SimpleJWT)
+        err_msg = str(exc.detail) if hasattr(exc, 'detail') else 'Authentication failed.'
+        if err_msg.lower() == 'authentication credentials were not provided.':
+            err_msg = 'Authentication failed. Invalid or expired token.'
+            
         return APIResponse.error(
-            message='Authentication failed. Invalid or expired token.',
+            message=err_msg,
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 

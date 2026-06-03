@@ -13,6 +13,9 @@ import uuid
 from datetime import datetime
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator, MaxLengthValidator
 from django.utils import timezone
 from django.core.validators import RegexValidator
 from phonenumber_field.modelfields import PhoneNumberField
@@ -100,6 +103,13 @@ def generate_user_id(role):
 
     return f'MC-{prefix}-{year}-{next_seq:05d}'
 
+
+def validate_file_size(value):
+    """Validator to ensure file size does not exceed 5MB."""
+    filesize = value.size
+    if filesize > 5 * 1024 * 1024:
+        raise ValidationError("The maximum file size that can be uploaded is 5MB")
+    return value
 
 # ─────────────────────────────────────────────────────────────────────
 #  CUSTOM USER MANAGER
@@ -291,6 +301,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text='Profile photo. Stored in S3/media in production.',
     )
 
+    id_proof = models.FileField(
+        upload_to='id_proofs/%Y/%m/',
+        blank=True,
+        null=True,
+        validators=[validate_file_size],
+        help_text='Uploaded ID proof file. Max size 5MB.',
+    )
+
     # ── Address ──────────────────────────────────────────────────────
     address_line_1 = models.CharField(
         max_length=255,
@@ -420,6 +438,19 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         null=True,
         help_text='Last successful login timestamp.',
+    )
+
+    # ── Organization (Multi-Tenant Ready) ────────────────────────────
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users',
+        help_text=(
+            'Organization this user belongs to. '
+            'Null = platform-level admin or pre-org-setup record.'
+        ),
     )
 
     # ── Manager ──────────────────────────────────────────────────────

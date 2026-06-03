@@ -78,6 +78,16 @@ class Invoice(models.Model):
         related_name='created_invoices',
     )
 
+    # ── Organization (Multi-Tenant Ready) ────────────────────────────
+    organization  = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='invoices',
+        help_text='Organization that issued this invoice.',
+    )
+
     # Amounts
     subtotal      = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tax_amount    = models.DecimalField(max_digits=10, decimal_places=2, default=0)
