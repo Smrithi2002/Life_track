@@ -421,15 +421,25 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
     
     is_elite_card = serializers.BooleanField(
         write_only=True,
-        default=False,
+        required=True,
         help_text='Set to True if purchasing Elite card, False for Base card.',
+    )
+    residential_address = serializers.CharField(
+        source='address_line_1',
+        required=True,
+        help_text='Residential address.'
+    )
+    emergency_contact = serializers.CharField(
+        source='emergency_contact_phone',
+        required=True,
+        help_text='Emergency contact phone number.'
     )
 
     class Meta:
         model = User
         fields = [
             'phone', 'full_name', 'email', 'avatar', 'id_proof',
-            'is_elite_card',
+            'is_elite_card', 'residential_address', 'emergency_contact',
             'date_of_birth', 'gender', 'blood_group',
         ]
         extra_kwargs = {
@@ -438,8 +448,8 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
             'email': {'required': False},
             'avatar': {'required': False},
             'id_proof': {'required': True},
-            'date_of_birth': {'required': False},
-            'gender': {'required': False},
+            'date_of_birth': {'required': True},
+            'gender': {'required': True},
             'blood_group': {'required': False},
         }
 
