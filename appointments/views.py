@@ -28,6 +28,7 @@ from .serializers import (
     DoctorProfileSerializer, DoctorProfileCreateSerializer, DoctorListSerializer,
     DoctorScheduleSerializer,
     AppointmentSerializer, AppointmentCreateSerializer,
+    FlutterAppointmentCreateSerializer,
     AppointmentStatusUpdateSerializer,
     VitalsSerializer, VitalsCreateSerializer,
 )
@@ -237,7 +238,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'create':
-            return AppointmentCreateSerializer
+            # Use the BFF Flutter payload format
+            return FlutterAppointmentCreateSerializer
         return AppointmentSerializer
 
     def get_queryset(self):
@@ -283,19 +285,23 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         return APIResponse.success(data=serializer.data)
 
     def create(self, request, *args, **kwargs):
+        # Only patients should book via this mobile endpoint
+        if request.user.role != 'PATIENT':
+            return APIResponse.error(message="Only patients can book appointments via this endpoint.")
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
         try:
             appointment = AppointmentService.book_appointment(
-                patient=data['patient'],
-                doctor=data['doctor'],
+                patient=request.user,
+                doctor=data['doctor_id'],
                 appointment_date=data['appointment_date'],
-                time_slot=data['time_slot'],
-                appointment_type=data.get('appointment_type', 'BOOKED'),
+                time_slot=data['appointment_time'],
+                appointment_type='BOOKED',
                 chief_complaint=data.get('chief_complaint', ''),
-                notes=data.get('notes', ''),
+                notes='',
             )
         except SlotUnavailableError as e:
             return APIResponse.error(
@@ -303,9 +309,30 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 status_code=status.HTTP_409_CONFLICT,
             )
 
+        # Build custom Flutter BFF response
+        custom_response = {
+            "id": str(appointment.id),
+            "doctor": {
+                "id": str(appointment.doctor.id),
+                "name": f"Dr. {appointment.doctor.user.full_name}",
+                "specialization": appointment.doctor.specialization or "General",
+                "experience_years": appointment.doctor.experience_years
+            },
+            "department": {
+                "id": str(appointment.doctor.department.id) if appointment.doctor.department else "",
+                "name": appointment.doctor.department.name if appointment.doctor.department else "General"
+            },
+            "appointment_date": str(appointment.appointment_date),
+            "appointment_time": str(appointment.time_slot)[:5], # format HH:MM
+            "duration_minutes": 15, # Hardcoded default or fetch from schedule
+            "chief_complaint": appointment.chief_complaint,
+            "status": "pending" if appointment.status == AppointmentStatus.BOOKED else appointment.status.lower(),
+            "created_at": appointment.created_at.isoformat()
+        }
+
         return APIResponse.success(
-            data=AppointmentSerializer(appointment, context={'request': request}).data,
-            message=f'Appointment booked. Token: {appointment.token_number}',
+            data={"appointment": custom_response},
+            message='Appointment created successfully',
             status_code=status.HTTP_201_CREATED,
         )
 
@@ -391,17 +418,28 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             patient=request.user,
         ).select_related('doctor__user', 'doctor__department').order_by('-appointment_date')
 
-        upcoming = qs.filter(
+        upcoming_qs = qs.filter(
             appointment_date__gte=date.today(),
         ).exclude(status__in=[AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED])
 
-        past = qs.filter(
+        past_qs = qs.filter(
             status__in=[AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED],
         ) | qs.filter(appointment_date__lt=date.today())
 
+        def format_appointment(appt):
+            return {
+                "id": str(appt.id),
+                "doctor_name": f"Dr. {appt.doctor.user.full_name}",
+                "specialization": appt.doctor.specialization or "General",
+                "appointment_date": str(appt.appointment_date),
+                "appointment_time": str(appt.time_slot)[:5],
+                "duration_minutes": 15,
+                "status": "pending" if appt.status == AppointmentStatus.BOOKED else appt.status.lower()
+            }
+
         return APIResponse.success(data={
-            'upcoming': AppointmentSerializer(upcoming.distinct()[:10], many=True, context={'request': request}).data,
-            'past': AppointmentSerializer(past.distinct()[:20], many=True, context={'request': request}).data,
+            'upcoming': [format_appointment(a) for a in upcoming_qs.distinct()[:10]],
+            'history': [format_appointment(a) for a in past_qs.distinct()[:20]],
         })
 
     # --- Doctor Queue ---

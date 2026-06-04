@@ -204,7 +204,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
 
 class AppointmentCreateSerializer(serializers.ModelSerializer):
-    """Used by patient/reception to book an appointment."""
+    """Used by patient/reception to book an appointment (Standard form)."""
     class Meta:
         model = Appointment
         fields = [
@@ -235,6 +235,41 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
                 'Selected time slot is fully booked. Please choose another.'
             )
 
+        return data
+
+
+class FlutterAppointmentCreateSerializer(serializers.Serializer):
+    """Used by Flutter mobile app to book an appointment (BFF payload)."""
+    doctor_id = serializers.UUIDField()
+    department_id = serializers.CharField(required=False, allow_blank=True) # Ignored, but accepted
+    appointment_date = serializers.DateField()
+    appointment_time = serializers.TimeField()
+    chief_complaint = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_doctor_id(self, value):
+        from .models import DoctorProfile
+        try:
+            doctor = DoctorProfile.objects.get(id=value)
+            if not doctor.is_available:
+                raise serializers.ValidationError("This doctor is currently unavailable.")
+            return doctor
+        except DoctorProfile.DoesNotExist:
+            raise serializers.ValidationError("Invalid doctor ID.")
+
+    def validate(self, data):
+        doctor = data['doctor_id']
+        appt_date = data['appointment_date']
+        time_slot = data['appointment_time']
+
+        existing = Appointment.objects.filter(
+            doctor=doctor,
+            appointment_date=appt_date,
+            time_slot=time_slot,
+        ).exclude(status=AppointmentStatus.CANCELLED).count()
+
+        if existing >= doctor.max_patients_per_slot:
+            raise serializers.ValidationError("Selected time slot is fully booked. Please choose another.")
+            
         return data
 
 

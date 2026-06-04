@@ -138,3 +138,7 @@ Traceback (most recent call last):
   File "C:\Users\SMRITHI\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_framework\serializers.py", line 1204, in get_field_names
     assert field_name in fields, (
 AssertionError: The field 'is_elite_card' was declared on serializer PatientRegistrationSerializer, but has not been included in the 'fields' option.
+[2026-06-04 14:24:37,436] INFO accounts OTP generated for +919999988888 (ID: 7a2d4ae6-1348-4673-9db9-89f8c52c206b, expires: 2026-06-04 08:59:37.431080+00:00)
+[2026-06-04 14:24:37,438] INFO accounts [DEV SMS] OTP for +919999988888: 155290 (DO NOT USE IN PRODUCTION)
+[2026-06-04 14:27:04,028] INFO accounts OTP verified successfully for +919999988888
+[2026-06-04 16:17:51,818] INFO appointments Appointment booked: T-001 for Aditya Sharma with Dr. Dr. Arun Kumar on 2026-06-17 at 10:00:00
