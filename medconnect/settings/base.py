@@ -190,7 +190,7 @@ if DEBUG:
 # ─────────────────────────────────────────────────────────────────────
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),       # SDD: 1 hour
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=5),       # SDD: 5 days
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),      # SDD: 30 days
     'ROTATE_REFRESH_TOKENS': True,                     # SDD: Single-use rotation
     'BLACKLIST_AFTER_ROTATION': True,
