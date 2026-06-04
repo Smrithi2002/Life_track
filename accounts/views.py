@@ -459,7 +459,7 @@ class PatientDashboardView(APIView):
             health_card_data = {
                 "name": user.full_name,
                 "card_id": health_card.card_number,
-                "plan": "Elite Plan" if health_card.is_elite_card else "Standard Plan",
+                "plan": "Elite Plan" if health_card.is_elite else "Standard Plan",
                 "valid_until": str(health_card.expiry_date) if health_card.expiry_date else None,
                 "qr_payload": f"https://ht.health/verify/{health_card.card_number}"
             }
