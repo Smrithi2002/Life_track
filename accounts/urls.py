@@ -74,8 +74,9 @@ from .views import (
     # Token management
     TokenRefreshView,
     LogoutView,
-    # Profile
+    # Profile & Dashboard
     UserProfileView,
+    PatientDashboardView,
     ChangePasswordView,
     # Admin management
     AdminUserListView,
@@ -125,9 +126,10 @@ urlpatterns = [
     path('auth/patient/login/',     PatientLoginView.as_view(),         name='patient-login'),
 
     # ═════════════════════════════════════════════════════════════════
-    #  USER PROFILE
+    #  USER PROFILE & DASHBOARD
     # ═════════════════════════════════════════════════════════════════
     path('users/me/', UserProfileView.as_view(), name='user-profile'),
+    path('users/dashboard/', PatientDashboardView.as_view(), name='patient-dashboard'),
 
     # ═════════════════════════════════════════════════════════════════
     #  ADMIN USER MANAGEMENT

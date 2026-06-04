@@ -4,6 +4,7 @@ MedConnect - Authentication & User Management Views
 All API views for login, registration, OTP, profile, and admin.
 """
 
+from datetime import date
 import logging
 from datetime import timedelta
 
@@ -17,6 +18,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from healthcard.models import HealthCard
+from appointments.models import Appointment, AppointmentStatus, Vitals
+from prescriptions.models import PrescriptionItem
+from medical_records.models import LabReport, ReportStatus
 
 from .models import User, UserRole
 from .serializers import (
@@ -420,6 +426,139 @@ class TokenRefreshView(APIView):
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
 
+
+# =================================================================
+#  PATIENT DASHBOARD API (BFF)
+# =================================================================
+
+class PatientDashboardView(APIView):
+    """
+    GET /api/v1/users/dashboard/
+    Unified Backend-For-Frontend endpoint that aggregates patient data.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if user.role != 'PATIENT':
+            return APIResponse.error(message="Only patients can access the dashboard", status_code=status.HTTP_403_FORBIDDEN)
+
+        # 1. Patient Info
+        patient_data = {
+            "id": user.user_id,
+            "display_name": user.full_name,
+            "dob": str(user.date_of_birth) if user.date_of_birth else None,
+            "blood_type": user.blood_group if hasattr(user, 'blood_group') and user.blood_group else "Unknown",
+            "primary_physician": None
+        }
+
+        # 2. Health Card
+        health_card = HealthCard.objects.filter(patient=user, is_active=True).first()
+        health_card_data = None
+        if health_card:
+            health_card_data = {
+                "name": user.full_name,
+                "card_id": health_card.card_number,
+                "plan": "Elite Plan" if health_card.is_elite_card else "Standard Plan",
+                "valid_until": str(health_card.expiry_date) if health_card.expiry_date else None,
+                "qr_payload": f"https://ht.health/verify/{health_card.card_number}"
+            }
+
+        # 3. Summary - Appointments
+        upcoming_appointments = Appointment.objects.filter(
+            patient=user,
+            appointment_date__gte=date.today()
+        ).exclude(status__in=[AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED]).order_by('appointment_date', 'time_slot')
+
+        appt_count = upcoming_appointments.count()
+        next_appt = upcoming_appointments.first()
+        
+        if next_appt:
+            patient_data["primary_physician"] = f"Dr. {next_appt.doctor.user.full_name}"
+
+        appointments_summary = {
+            "count": appt_count,
+            "label": "Upcoming",
+            "next_date": str(next_appt.appointment_date) if next_appt else None,
+            "next_with": f"Dr. {next_appt.doctor.user.full_name}" if next_appt else None
+        }
+
+        # 4. Summary - Medications & Medication List
+        active_prescriptions = PrescriptionItem.objects.filter(
+            prescription__patient=user,
+            is_dispensed=True
+            # In a real app we might check duration_days vs created_at, but we'll return all dispensed for now
+        ).select_related('medicine')
+
+        medications_list = []
+        for item in active_prescriptions:
+            medications_list.append({
+                "id": str(item.id),
+                "name": item.medicine.name,
+                "dose": item.dosage,
+                "frequency": item.get_frequency_display(),
+                "is_active": True,
+                "taken_today": False, # Placeholder logic
+                "icon_type": "tablet", # Default icon
+                "refill_due": None
+            })
+
+        medications_summary = {
+            "active_count": active_prescriptions.count(),
+            "label": "Active",
+            "next_dose_in_minutes": 60 if active_prescriptions.exists() else None # Placeholder logic
+        }
+
+        # 5. Summary - Lab Reports
+        lab_reports = LabReport.objects.filter(
+            patient=user,
+            status__in=[ReportStatus.READY, ReportStatus.DELIVERED]
+        ).order_by('-updated_at')
+
+        latest_report = lab_reports.first()
+        lab_reports_summary = {
+            "new_count": lab_reports.count(),
+            "label": "New",
+            "report_name": latest_report.title if latest_report else None
+        }
+
+        # 6. Summary - Vitals
+        latest_vitals = Vitals.objects.filter(
+            appointment__patient=user
+        ).order_by('-recorded_at').first()
+
+        vitals_summary = None
+        if latest_vitals:
+            vitals_summary = {
+                "display_value": f"{latest_vitals.blood_pressure_sys}/{latest_vitals.blood_pressure_dia}" if latest_vitals.blood_pressure_sys else "N/A",
+                "unit": "mmHg",
+                "label": "Blood Pressure",
+                "recorded_at": latest_vitals.recorded_at.isoformat() if latest_vitals.recorded_at else None,
+                "trend": "stable"
+            }
+        else:
+            vitals_summary = {
+                "display_value": "-",
+                "unit": "mmHg",
+                "label": "Blood Pressure",
+                "recorded_at": None,
+                "trend": "-"
+            }
+
+        # 7. Assemble Dashboard
+        dashboard_data = {
+            "patient": patient_data,
+            "health_card": health_card_data,
+            "summary": {
+                "appointments": appointments_summary,
+                "medications": medications_summary,
+                "lab_reports": lab_reports_summary,
+                "vitals": vitals_summary
+            },
+            "medications": medications_list
+        }
+
+        return APIResponse.success(data=dashboard_data)
 
 # =================================================================
 #  ADMIN USER MANAGEMENT APIs
