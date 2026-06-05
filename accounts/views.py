@@ -378,23 +378,13 @@ class ChangePasswordView(APIView):
 
 
 class LogoutView(APIView):
-    """POST /api/v1/auth/logout/ - Blacklist refresh token."""
+    """POST /api/v1/auth/logout/ - Simple logout endpoint."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        refresh_token = request.data.get('refresh_token')
-        if not refresh_token:
-            return APIResponse.error(
-                message='Refresh token is required.',
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return APIResponse.success(message='Logged out successfully.')
-        except Exception:
-            return APIResponse.success(message='Logged out.')
+        # In a stateless JWT architecture, the frontend handles logout by deleting the token locally.
+        # This endpoint just returns a 200 OK success message for the frontend to confirm.
+        return APIResponse.success(message='Logged out successfully.')
 
 
 class TokenRefreshView(APIView):
